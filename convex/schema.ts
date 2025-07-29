@@ -18,4 +18,32 @@ export default defineSchema({
       })
     ),
   }).index('by_email', ['email']),
+
+  boards: defineTable({
+    name: v.string(),
+    tldrawSnapshot: v.any(), // Full canvas state for restoration
+    userId: v.id('users'),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    workspaceId: v.id('workspace'),
+  })
+    .index('by_user', ['userId'])
+    .index('by_workspace', ['workspaceId'])
+    .index('by_workspace_and_user', ['workspaceId', 'userId']),
+
+  workspace: defineTable({
+    name: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    userId: v.id('users'),
+  }).index('by_user', ['userId']),
+
+  // Optional: Only needed if you enable user uploads
+  images: defineTable({
+    storageId: v.id('_storage'),
+    name: v.string(),
+    mimeType: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }),
 })

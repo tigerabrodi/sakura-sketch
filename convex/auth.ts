@@ -18,6 +18,22 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         updatedAt: Date.now(),
       })
 
+      const workspaceId = await ctx.db.insert('workspace', {
+        name: 'My Workspace',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        userId,
+      })
+
+      await ctx.db.insert('boards', {
+        name: 'My Board',
+        tldrawSnapshot: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        userId,
+        workspaceId: workspaceId,
+      })
+
       return userId
     },
   },

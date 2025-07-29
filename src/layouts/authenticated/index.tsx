@@ -4,6 +4,9 @@ import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { generatePath, Outlet, useNavigate } from 'react-router'
 
+import { AppHeader } from './components/header/AppHeader'
+import { Sidebar } from './components/Sidebar'
+
 import { ROUTES } from '@/lib/constants'
 
 export function AuthenticatedLayout() {
@@ -26,5 +29,13 @@ export function AuthenticatedLayout() {
     )
   }
 
-  return <Outlet />
+  return (
+    <div className="flex flex-1 flex-col">
+      <AppHeader />
+      <div className="flex w-full flex-1">
+        <Sidebar selectedCharacter={null} onClearSelection={() => {}} />
+        <Outlet />
+      </div>
+    </div>
+  )
 }

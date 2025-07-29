@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { useCanvas } from '../providers/CanvasProvider'
+
 import ImagePng from '@/assets/image.png'
 import PalettePng from '@/assets/palette.png'
 import WandPng from '@/assets/wand.png'
@@ -7,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 
-interface CharacterImage {
+export interface CharacterImage {
   id: string
   src: string
   x: number
@@ -18,16 +20,11 @@ interface CharacterImage {
   selected: boolean
 }
 
-interface GenerationSidebarProps {
-  selectedCharacter: CharacterImage | null
-  onClearSelection: () => void
-}
-
 const sizeOptions = [
   { label: 'Portrait', value: 'portrait', aspect: '4:5' },
   { label: 'Square', value: 'square', aspect: '1:1' },
   { label: 'Wide', value: 'wide', aspect: '16:9' },
-]
+] as const
 
 const examples = [
   '1girl, long hair, school uniform',
@@ -36,10 +33,11 @@ const examples = [
   '1boy, casual clothes, friendly face',
 ]
 
-export const Sidebar = ({ selectedCharacter, onClearSelection }: GenerationSidebarProps) => {
+export const Sidebar = () => {
   const [prompt, setPrompt] = useState('')
   const [selectedSize, setSelectedSize] = useState('portrait')
   const [isGenerating, setIsGenerating] = useState(false)
+  const { selectedCharacter, setSelectedCharacter } = useCanvas()
 
   const handleGenerate = () => {
     if (!prompt.trim()) return
@@ -71,7 +69,7 @@ export const Sidebar = ({ selectedCharacter, onClearSelection }: GenerationSideb
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onClearSelection}
+                onClick={() => setSelectedCharacter(null)}
                 className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
               >
                 ×
@@ -181,7 +179,7 @@ const ExamplesSection = ({ examples, onExampleClick }: ExamplesSectionProps) => 
 )
 
 interface SizeOptionsSectionProps {
-  sizeOptions: Array<{ label: string; value: string; aspect: string }>
+  sizeOptions: typeof sizeOptions
   selectedSize: string
   onSizeSelect: (size: string) => void
 }

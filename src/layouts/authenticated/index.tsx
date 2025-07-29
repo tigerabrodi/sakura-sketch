@@ -6,6 +6,7 @@ import { generatePath, Outlet, useNavigate } from 'react-router'
 
 import { AppHeader } from './components/header/AppHeader'
 import { Sidebar } from './components/Sidebar'
+import { CanvasProvider } from './providers/CanvasProvider'
 
 import { ROUTES } from '@/lib/constants'
 
@@ -30,12 +31,14 @@ export function AuthenticatedLayout() {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <AppHeader />
-      <div className="flex w-full flex-1">
-        <Sidebar selectedCharacter={null} onClearSelection={() => {}} />
-        <Outlet />
+    <CanvasProvider>
+      <div className="flex flex-1 flex-col">
+        <AppHeader />
+        <div className="flex w-full flex-1">
+          <Sidebar />
+          <Outlet />
+        </div>
       </div>
-    </div>
+    </CanvasProvider>
   )
 }

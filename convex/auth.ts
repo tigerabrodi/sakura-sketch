@@ -40,6 +40,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         selectedBoardId: boardId,
       })
 
+      await ctx.db.patch(userId, {
+        selectedWorkspaceId: workspaceId,
+      })
+
       return userId
     },
   },

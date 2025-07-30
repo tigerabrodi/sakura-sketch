@@ -7,6 +7,7 @@ import { generatePath, useNavigate } from 'react-router'
 import { LoginForm } from './components/LoginForm'
 import { RegisterForm } from './components/RegisterForm'
 
+import LogoPng from '@/assets/logo.png'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ROUTES, TAB_VALUES } from '@/lib/constants'
@@ -39,8 +40,9 @@ export function LoginPage() {
     <div className="flex flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="flex flex-col items-center gap-1">
-          <CardTitle className="text-primary flex items-center justify-center gap-2 text-center text-2xl">
-            Your app name...
+          <CardTitle className="text-primary flex items-center justify-center gap-2 text-center text-2xl font-bold italic">
+            Sakura Sketch
+            <img src={LogoPng} alt="Sakura Sketch" className="mb-2 size-8 rotate-[4deg]" />
           </CardTitle>
         </CardHeader>
         <CardContent>

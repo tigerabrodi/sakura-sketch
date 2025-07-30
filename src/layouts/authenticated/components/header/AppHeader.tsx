@@ -125,9 +125,12 @@ export const AppHeader = () => {
 
     if (error) {
       toast.error('Failed to create new board.')
+      setIsCreatingBoard(false)
+      return
     }
 
     setIsCreateBoardDialogOpen(false)
+    setIsCreatingBoard(false)
   }
 
   const handleSaveNewWorkspace = async (newWorkspaceName: string) => {
@@ -141,9 +144,12 @@ export const AppHeader = () => {
 
     if (error) {
       toast.error('Failed to create new workspace.')
+      setIsCreatingWorkspace(false)
+      return
     }
 
     setIsCreateWorkspaceDialogOpen(false)
+    setIsCreatingWorkspace(false)
   }
 
   const handleSaveWorkspaceName = async (newWorkspaceName: string) => {

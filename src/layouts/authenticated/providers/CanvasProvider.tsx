@@ -3,10 +3,6 @@ import { createContext, ReactNode, useContext, useState } from 'react'
 import { CharacterImage } from '../components/Sidebar'
 
 interface CanvasContextType {
-  selectedWorkspaceId: string | null
-  selectedBoardId: string | null
-  setSelectedWorkspaceId: (workspaceId: string | null) => void
-  setSelectedBoardId: (boardId: string | null) => void
   selectedCharacter: CharacterImage | null
   setSelectedCharacter: (character: CharacterImage | null) => void
 }
@@ -18,15 +14,9 @@ interface CanvasProviderProps {
 }
 
 export const CanvasProvider = ({ children }: CanvasProviderProps) => {
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null)
-  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null)
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterImage | null>(null)
 
   const value: CanvasContextType = {
-    selectedWorkspaceId,
-    selectedBoardId,
-    setSelectedWorkspaceId,
-    setSelectedBoardId,
     selectedCharacter,
     setSelectedCharacter,
   }

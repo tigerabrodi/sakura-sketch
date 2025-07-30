@@ -1,5 +1,9 @@
+import { api } from '@convex/_generated/api'
+import { Doc } from '@convex/_generated/dataModel'
+import { useMutation, useQuery } from 'convex/react'
 import { ChevronDown, Edit3, FolderOpen, Layers, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import { CreateBoardDialog } from './CreateBoardDialog'
 import { CreateWorkspaceDialog } from './CreateWorkspaceDialog'
@@ -15,103 +19,239 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-
-const workspaces = [
-  {
-    id: 1,
-    name: 'Main Character Designs',
-    boards: ['Hero Concepts', 'Villains', 'Side Characters'],
-  },
-  {
-    id: 2,
-    name: 'Fantasy Project',
-    boards: ['Elves & Fae', 'Dragons', 'Warriors'],
-  },
-  {
-    id: 3,
-    name: 'Modern Slice of Life',
-    boards: ['School Characters', 'Adults', 'Background NPCs'],
-  },
-]
+import { Skeleton } from '@/components/ui/skeleton'
+import { getErrorMessage, handlePromise } from '@/lib/utils'
 
 export const AppHeader = () => {
-  const [currentWorkspace, setCurrentWorkspace] = useState(workspaces[0])
-  const [currentBoard, setCurrentBoard] = useState(workspaces[0].boards[0])
+  const user = useQuery(api.users.queries.getCurrentUser)
+  const selectedWorkspaceId = user?.selectedWorkspaceId
+  const workspaces = useQuery(api.workspaces.queries.getUserWorkspaces)
+
+  const currentWorkspace = useMemo(() => {
+    return workspaces?.find((workspace) => workspace._id === selectedWorkspaceId) ?? null
+  }, [workspaces, selectedWorkspaceId])
+
+  const boards = useQuery(api.boards.queries.getUserBoardsByWorkspaceId, {
+    workspaceId: selectedWorkspaceId ?? null,
+  })
+
+  const currentBoard = useMemo(() => {
+    return boards?.find((board) => board._id === currentWorkspace?.selectedBoardId) ?? null
+  }, [boards, currentWorkspace])
+
+  const switchWorkspace = useMutation(
+    api.workspaces.mutations.switchWorkspace
+  ).withOptimisticUpdate((localStore, args) => {
+    const workspaceId = args.workspaceId
+    const existingCurrentUser = localStore.getQuery(api.users.queries.getCurrentUser)
+
+    if (!existingCurrentUser) {
+      throw new Error('Current user not found')
+    }
+
+    localStore.setQuery(
+      api.users.queries.getCurrentUser,
+      {},
+      {
+        ...existingCurrentUser,
+        selectedWorkspaceId: workspaceId,
+      }
+    )
+  })
+
+  const createNewBoard = useMutation(api.boards.mutations.createNewBoard)
+
+  const updateWorkspace = useMutation(
+    api.workspaces.mutations.updateWorkspace
+  ).withOptimisticUpdate((localStore, args) => {
+    const workspaceId = args.workspaceId
+    const existingCurrentUser = localStore.getQuery(api.users.queries.getCurrentUser)
+
+    if (!existingCurrentUser) {
+      throw new Error('Current user not found')
+    }
+
+    const allExistingWorkspaces = localStore.getQuery(api.workspaces.queries.getUserWorkspaces)
+
+    if (!allExistingWorkspaces) {
+      throw new Error('All existing workspaces not found')
+    }
+
+    const newAllWorkspaces = allExistingWorkspaces.map((workspace) =>
+      workspace._id === workspaceId ? { ...workspace, name: args.name } : workspace
+    )
+
+    localStore.setQuery(api.workspaces.queries.getUserWorkspaces, {}, newAllWorkspaces)
+  })
+
+  const createWorkspace = useMutation(api.workspaces.mutations.createWorkspace)
+
+  const switchBoard = useMutation(api.workspaces.mutations.switchBoard).withOptimisticUpdate(
+    (localStore, args) => {
+      const workspaceId = args.workspaceId
+      const boardId = args.boardId
+
+      const workspaces = localStore.getQuery(api.workspaces.queries.getUserWorkspaces)
+      const currentWorkspace = workspaces?.find((workspace) => workspace._id === workspaceId)
+
+      if (!currentWorkspace) {
+        throw new Error('Current workspace not found')
+      }
+
+      const newCurrentWorkspace = {
+        ...currentWorkspace,
+        selectedBoardId: boardId,
+      }
+
+      const newAllWorkspaces = workspaces?.map((workspace) =>
+        workspace._id === workspaceId ? newCurrentWorkspace : workspace
+      )
+
+      localStore.setQuery(api.workspaces.queries.getUserWorkspaces, {}, newAllWorkspaces)
+    }
+  )
+
+  const updateBoard = useMutation(api.boards.mutations.updateBoard).withOptimisticUpdate(
+    (localStore, args) => {
+      if (!selectedWorkspaceId) {
+        throw new Error('Selected workspace not found')
+      }
+
+      const boards = localStore.getQuery(api.boards.queries.getUserBoardsByWorkspaceId, {
+        workspaceId: selectedWorkspaceId,
+      })
+
+      const currentBoard = boards?.find((board) => board._id === args.boardId)
+
+      if (!currentBoard) {
+        throw new Error('Current board not found')
+      }
+
+      const newAllBoards = boards?.map((board) =>
+        board._id === args.boardId ? { ...currentBoard, name: args.name } : board
+      )
+
+      localStore.setQuery(
+        api.boards.queries.getUserBoardsByWorkspaceId,
+        {
+          workspaceId: selectedWorkspaceId,
+        },
+        newAllBoards
+      )
+    }
+  )
 
   // Edit Board Dialog State
-  const [editingBoardTitle, setEditingBoardTitle] = useState('')
   const [isEditBoardDialogOpen, setIsEditBoardDialogOpen] = useState(false)
 
   // Create Board Dialog State
-  const [newBoardTitle, setNewBoardTitle] = useState('')
+  const [isCreatingBoard, setIsCreatingBoard] = useState(false)
   const [isCreateBoardDialogOpen, setIsCreateBoardDialogOpen] = useState(false)
 
   // Create Workspace Dialog State
-  const [newWorkspaceName, setNewWorkspaceName] = useState('')
   const [isCreateWorkspaceDialogOpen, setIsCreateWorkspaceDialogOpen] = useState(false)
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false)
 
   // Edit Workspace Dialog State
-  const [editingWorkspaceName, setEditingWorkspaceName] = useState('')
   const [isEditWorkspaceDialogOpen, setIsEditWorkspaceDialogOpen] = useState(false)
 
-  const handleWorkspaceSwitch = (workspace: (typeof workspaces)[0]) => {
-    console.log('Switching to workspace:', workspace.name)
-    setCurrentWorkspace(workspace)
-    setCurrentBoard(workspace.boards[0])
+  const handleWorkspaceSwitch = async (workspace: Doc<'workspaces'>) => {
+    const [error] = await handlePromise(
+      switchWorkspace({
+        workspaceId: workspace._id,
+      })
+    )
+
+    if (error) {
+      toast.error(getErrorMessage({ error }))
+    }
   }
 
-  const handleBoardSwitch = (boardName: string) => {
-    console.log('Switching to board:', boardName)
-    setCurrentBoard(boardName)
+  const handleBoardSwitch = async (board: Doc<'boards'>) => {
+    const [error] = await handlePromise(
+      switchBoard({
+        workspaceId: board.workspaceId,
+        boardId: board._id,
+      })
+    )
+
+    if (error) {
+      toast.error(getErrorMessage({ error }))
+    }
   }
 
-  // Edit Board Handlers
-  const handleEditBoard = () => {
-    setEditingBoardTitle(currentBoard)
-    setIsEditBoardDialogOpen(true)
-  }
+  const handleSaveBoardTitle = async (newBoardName: string) => {
+    if (!currentBoard?._id) {
+      throw new Error('Current board not found')
+    }
 
-  const handleSaveBoardTitle = () => {
-    console.log('Saving board title:', editingBoardTitle)
-    setCurrentBoard(editingBoardTitle)
+    const [error] = await handlePromise(
+      updateBoard({
+        boardId: currentBoard?._id,
+        name: newBoardName,
+      })
+    )
+
+    if (error) {
+      toast.error(getErrorMessage({ error }))
+    }
+
     setIsEditBoardDialogOpen(false)
   }
 
-  // Create Board Handlers
-  const handleCreateBoard = () => {
-    setNewBoardTitle('')
-    setIsCreateBoardDialogOpen(true)
-  }
+  const handleSaveNewBoard = async (boardName: string) => {
+    if (!currentWorkspace?._id) {
+      throw new Error('Current workspace not found')
+    }
 
-  const handleSaveNewBoard = () => {
-    console.log('Creating new board:', newBoardTitle)
-    // Mock: Add to current workspace boards
+    setIsCreatingBoard(true)
+
+    const [error] = await handlePromise(
+      createNewBoard({
+        workspaceId: currentWorkspace?._id,
+        name: boardName,
+      })
+    )
+
+    if (error) {
+      toast.error('Failed to create new board.')
+    }
+
     setIsCreateBoardDialogOpen(false)
-    setNewBoardTitle('')
   }
 
-  // Create Workspace Handlers
-  const handleCreateWorkspace = () => {
-    setNewWorkspaceName('')
-    setIsCreateWorkspaceDialogOpen(true)
-  }
+  const handleSaveNewWorkspace = async (newWorkspaceName: string) => {
+    setIsCreatingWorkspace(true)
 
-  const handleSaveNewWorkspace = () => {
-    console.log('Creating new workspace:', newWorkspaceName)
-    // Mock: Add to workspaces
+    const [error] = await handlePromise(
+      createWorkspace({
+        name: newWorkspaceName,
+      })
+    )
+
+    if (error) {
+      toast.error('Failed to create new workspace.')
+    }
+
     setIsCreateWorkspaceDialogOpen(false)
-    setNewWorkspaceName('')
   }
 
-  // Edit Workspace Handlers
-  const handleEditWorkspace = () => {
-    setEditingWorkspaceName(currentWorkspace.name)
-    setIsEditWorkspaceDialogOpen(true)
-  }
+  const handleSaveWorkspaceName = async (newWorkspaceName: string) => {
+    if (!currentWorkspace?._id) {
+      throw new Error('Current workspace not found')
+    }
 
-  const handleSaveWorkspaceName = () => {
-    console.log('Saving workspace name:', editingWorkspaceName)
-    // Mock: Update current workspace name
+    const [error] = await handlePromise(
+      updateWorkspace({
+        workspaceId: currentWorkspace?._id,
+        name: newWorkspaceName,
+      })
+    )
+
+    if (error) {
+      toast.error('Failed to update workspace name.')
+    }
+
     setIsEditWorkspaceDialogOpen(false)
   }
 
@@ -131,27 +271,27 @@ export const AppHeader = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 px-2">
-                <span className="max-w-32 truncate">{currentWorkspace.name}</span>
+                <span className="max-w-32 truncate">{currentWorkspace?.name}</span>
                 <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64" align="center">
-              {workspaces.map((workspace) => (
+              {workspaces?.map((workspace) => (
                 <DropdownMenuItem
-                  key={workspace.id}
+                  key={workspace._id}
                   onClick={() => handleWorkspaceSwitch(workspace)}
-                  className={currentWorkspace.id === workspace.id ? 'bg-anime-purple-light' : ''}
+                  className={currentWorkspace?._id === workspace._id ? 'bg-anime-purple-light' : ''}
                 >
                   <FolderOpen className="mr-2 h-4 w-4" />
                   {workspace.name}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleCreateWorkspace}>
+              <DropdownMenuItem onClick={() => setIsCreateWorkspaceDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create New Workspace
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleEditWorkspace}>
+              <DropdownMenuItem onClick={() => setIsEditWorkspaceDialogOpen(true)}>
                 <Edit3 className="mr-2 h-4 w-4" />
                 Edit Workspace
               </DropdownMenuItem>
@@ -167,27 +307,31 @@ export const AppHeader = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 px-2">
-                <span className="max-w-32 truncate">{currentBoard}</span>
+                {currentBoard ? (
+                  <span className="max-w-32 truncate">{currentBoard.name}</span>
+                ) : (
+                  <Skeleton className="h-5 w-24 rounded" />
+                )}
                 <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="center">
-              {currentWorkspace.boards.map((board) => (
+              {boards?.map((board) => (
                 <DropdownMenuItem
-                  key={board}
+                  key={board._id}
                   onClick={() => handleBoardSwitch(board)}
-                  className={currentBoard === board ? 'bg-anime-purple-light' : ''}
+                  className={currentBoard?._id === board._id ? 'bg-anime-purple-light' : ''}
                 >
                   <Layers className="mr-2 h-4 w-4" />
-                  {board}
+                  {board.name}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleCreateBoard}>
+              <DropdownMenuItem onClick={() => setIsCreateBoardDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create New Board
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleEditBoard}>
+              <DropdownMenuItem onClick={() => setIsEditBoardDialogOpen(true)}>
                 <Edit3 className="mr-2 h-4 w-4" />
                 Edit Board
               </DropdownMenuItem>
@@ -203,32 +347,28 @@ export const AppHeader = () => {
       <EditBoardDialog
         isOpen={isEditBoardDialogOpen}
         onOpenChange={setIsEditBoardDialogOpen}
-        editingBoardTitle={editingBoardTitle}
-        onEditingBoardTitleChange={setEditingBoardTitle}
+        initialBoardName={currentBoard?.name ?? ''}
         onSave={handleSaveBoardTitle}
       />
 
       <CreateBoardDialog
         isOpen={isCreateBoardDialogOpen}
         onOpenChange={setIsCreateBoardDialogOpen}
-        newBoardTitle={newBoardTitle}
-        onNewBoardTitleChange={setNewBoardTitle}
+        isCreatingBoard={isCreatingBoard}
         onCreate={handleSaveNewBoard}
       />
 
       <CreateWorkspaceDialog
         isOpen={isCreateWorkspaceDialogOpen}
         onOpenChange={setIsCreateWorkspaceDialogOpen}
-        newWorkspaceName={newWorkspaceName}
-        onNewWorkspaceNameChange={setNewWorkspaceName}
         onCreate={handleSaveNewWorkspace}
+        isCreatingWorkspace={isCreatingWorkspace}
       />
 
       <EditWorkspaceDialog
         isOpen={isEditWorkspaceDialogOpen}
         onOpenChange={setIsEditWorkspaceDialogOpen}
-        editingWorkspaceName={editingWorkspaceName}
-        onEditingWorkspaceNameChange={setEditingWorkspaceName}
+        initialWorkspaceName={currentWorkspace?.name ?? ''}
         onSave={handleSaveWorkspaceName}
       />
     </header>

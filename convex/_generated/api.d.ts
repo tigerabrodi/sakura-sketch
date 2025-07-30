@@ -14,12 +14,15 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as auth from "../auth.js";
+import type * as boards_mutations from "../boards/mutations.js";
+import type * as boards_queries from "../boards/queries.js";
 import type * as constants from "../constants.js";
 import type * as http from "../http.js";
 import type * as users_actions from "../users/actions.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
 import type * as utils from "../utils.js";
+import type * as workspaces_mutations from "../workspaces/mutations.js";
 import type * as workspaces_queries from "../workspaces/queries.js";
 
 /**
@@ -32,12 +35,15 @@ import type * as workspaces_queries from "../workspaces/queries.js";
  */
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  "boards/mutations": typeof boards_mutations;
+  "boards/queries": typeof boards_queries;
   constants: typeof constants;
   http: typeof http;
   "users/actions": typeof users_actions;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
   utils: typeof utils;
+  "workspaces/mutations": typeof workspaces_mutations;
   "workspaces/queries": typeof workspaces_queries;
 }>;
 export declare const api: FilterApi<

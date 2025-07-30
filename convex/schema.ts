@@ -11,6 +11,7 @@ export default defineSchema({
   users: defineTable({
     email: v.string(),
     updatedAt: v.number(),
+    selectedWorkspaceId: v.union(v.id('workspaces'), v.null()),
     apiKey: v.optional(
       v.object({
         encryptedKey: v.array(v.number()), // For encrypted API key storage
@@ -25,17 +26,18 @@ export default defineSchema({
     userId: v.id('users'),
     createdAt: v.number(),
     updatedAt: v.number(),
-    workspaceId: v.id('workspace'),
+    workspaceId: v.id('workspaces'),
   })
     .index('by_user', ['userId'])
     .index('by_workspace', ['workspaceId'])
     .index('by_workspace_and_user', ['workspaceId', 'userId']),
 
-  workspace: defineTable({
+  workspaces: defineTable({
     name: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
     userId: v.id('users'),
+    selectedBoardId: v.union(v.id('boards'), v.null()),
   }).index('by_user', ['userId']),
 
   // Optional: Only needed if you enable user uploads

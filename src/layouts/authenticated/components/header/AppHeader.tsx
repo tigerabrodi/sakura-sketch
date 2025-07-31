@@ -98,7 +98,9 @@ export const AppHeader = () => {
     const [error] = await handlePromise(
       updateBoard({
         boardId: currentBoard?._id,
-        name: newBoardName,
+        data: {
+          name: newBoardName,
+        },
       })
     )
 

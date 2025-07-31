@@ -43,7 +43,10 @@ export const createNewBoard = mutation({
 export const updateBoard = mutation({
   args: {
     boardId: v.id('boards'),
-    name: v.string(),
+    data: v.object({
+      name: v.optional(v.string()),
+      tldrawSnapshot: v.optional(v.any()),
+    }),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
@@ -63,7 +66,35 @@ export const updateBoard = mutation({
     }
 
     await ctx.db.patch(args.boardId, {
-      name: args.name,
+      name: args.data.name ?? board.name,
+      tldrawSnapshot: args.data.tldrawSnapshot ?? board.tldrawSnapshot,
+      updatedAt: Date.now(),
     })
+  },
+})
+
+// Save user-uploaded image metadata
+export const saveImageMeta = mutation({
+  args: {
+    storageId: v.id('_storage'),
+    name: v.string(),
+    mimeType: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert('images', {
+      storageId: args.storageId,
+      name: args.name,
+      mimeType: args.mimeType,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+  },
+})
+
+// Get serving URL from storage ID
+export const getImageUrl = mutation({
+  args: { storageId: v.id('_storage') },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId)
   },
 })

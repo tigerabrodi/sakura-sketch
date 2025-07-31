@@ -1,5 +1,5 @@
 import { api } from '@convex/_generated/api'
-import { useMutation, useQuery } from 'convex/react'
+import { useConvex, useMutation, useQuery } from 'convex/react'
 import debounce from 'lodash.debounce'
 import { useCallback, useMemo, useRef } from 'react'
 import {
@@ -15,6 +15,7 @@ import {
 import { useEditorWrapperContext } from '@/layouts/authenticated/providers/EditorProvider'
 
 import 'tldraw/tldraw.css'
+import { ConvexAssetStore } from './ConvexAssetStore'
 
 const DEBOUNCE_TIME = 1000
 
@@ -27,15 +28,25 @@ export function CanvasPage() {
   })
 
   const editorRef = useRef<Editor | null>(null)
+  const hasInitializedRef = useRef(false)
+
+  const convex = useConvex()
 
   // Create store with initial snapshot if available
   const store = useMemo(() => {
-    const newStore = createTLStore()
-    if (board?.tldrawSnapshot) {
+    const newStore = createTLStore({
+      assets: new ConvexAssetStore(convex),
+    })
+
+    // Only load snapshot on first initialization when board data becomes available
+    if (board?.tldrawSnapshot && !hasInitializedRef.current) {
       loadSnapshot(newStore, board.tldrawSnapshot as TLEditorSnapshot)
+      hasInitializedRef.current = true
     }
+
     return newStore
-  }, [board?.tldrawSnapshot])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convex, board?._id]) // Only depend on board._id, not the snapshot
 
   const updateBoard = useMutation(api.boards.mutations.updateBoard)
 

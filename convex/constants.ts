@@ -1,2 +1,2 @@
-export const ANIMAGINE_XL_VERSION =
-  'cjwbw/animagine-xl-3.1:6afe2e6b27dad2d6f480b59195c221884b6acc589ff4d05ff0e5fc058690fbb9'
+export const ANIME_MODEL_VERSION =
+  'asiryan/mistoon-anime-xl:06285a5017bb6bdc7314b3914c48896ffbe543ab8fa1ffc114f8894deac22c9d'

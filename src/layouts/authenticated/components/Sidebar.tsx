@@ -1,6 +1,11 @@
+import { api } from '@convex/_generated/api'
+import { Id } from '@convex/_generated/dataModel'
+import { useAction } from 'convex/react'
 import { useState } from 'react'
+import { toast } from 'sonner'
+import { TLShape, useValue } from 'tldraw'
 
-import { useCanvas } from '../providers/CanvasProvider'
+import { useEditorWrapperContext } from '../providers/EditorProvider'
 
 import ImagePng from '@/assets/image.png'
 import PalettePng from '@/assets/palette.png'
@@ -8,6 +13,17 @@ import WandPng from '@/assets/wand.png'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { getErrorMessage, handlePromise } from '@/lib/utils'
+
+type AnimeImageShape = TLShape & {
+  meta: {
+    prompt: string
+    storageId: string
+    generatedAt: number
+    imageUrl: string
+    parentImageId?: string
+  }
+}
 
 export interface CharacterImage {
   id: string
@@ -27,38 +43,117 @@ const sizeOptions = [
 ] as const
 
 const examples = [
-  '1girl, long hair, school uniform',
-  '1boy, spiky hair, confident smile',
-  '1girl, magical girl, wand, sparkles',
-  '1boy, casual clothes, friendly face',
+  '1girl, blonde hair, ponytail, school uniform, looking_at_viewer',
+  '1boy, spiky black hair, confident expression, casual clothes',
+  '1girl, magical girl, colorful dress, wand, sparkles, dynamic pose',
+  '1boy, messy brown hair, friendly smile, hoodie, urban background',
 ]
 
 export const Sidebar = () => {
   const [prompt, setPrompt] = useState('')
-  const [selectedSize, setSelectedSize] = useState('portrait')
+  const [selectedSize, setSelectedSize] =
+    useState<(typeof sizeOptions)[number]['value']>('portrait')
   const [isGenerating, setIsGenerating] = useState(false)
-  const { selectedCharacter, setSelectedCharacter } = useCanvas()
 
-  const handleGenerate = () => {
-    if (!prompt.trim()) return
+  const { editor, addGeneratedImage } = useEditorWrapperContext()
+
+  const selectedShapeIds = useValue('selectedShapeIds', () => editor?.getSelectedShapeIds(), [
+    editor,
+  ])
+  const selectedShapes = selectedShapeIds?.map((id) => editor?.getShape(id) as AnimeImageShape)
+
+  const hasAnySelectedShapes = Boolean(selectedShapes?.length && selectedShapes.length > 0)
+
+  // Check if exactly one image is selected
+  const firstSelectedShape =
+    selectedShapes?.length === 1 && selectedShapes[0]?.type === 'image' ? selectedShapes[0] : null
+
+  const canGenerate = prompt.trim().length > 0 && !isGenerating
+
+  const generateNewImage = useAction(api.images.actions.generateAnimeImage)
+  const iterateImage = useAction(api.images.actions.iterateAnimeImage)
+
+  const handleGenerate = async () => {
+    if (!prompt.trim() || isGenerating || !canGenerate) return
 
     setIsGenerating(true)
-    // Mock generation delay
-    setTimeout(() => {
-      setIsGenerating(false)
-    }, 3000)
+
+    const [error, result] = await handlePromise(
+      generateNewImage({
+        prompt,
+        size: selectedSize,
+      })
+    )
+
+    if (error) {
+      toast.error(getErrorMessage({ error, fallbackText: 'Failed to generate image' }))
+    } else if (result && addGeneratedImage && editor) {
+      const bounds = editor.getViewportPageBounds()
+
+      const center = {
+        x: bounds.x + bounds.w / 2,
+        y: bounds.y + bounds.h / 2,
+      }
+
+      addGeneratedImage({
+        imageUrl: result.imageUrl ?? '',
+        storageId: result.storageId.toString(),
+        prompt: result.prompt,
+        position: center,
+        dimensions: { w: result.dimensions.width, h: result.dimensions.height },
+      })
+
+      toast.success('Image generated!')
+    }
+
+    setIsGenerating(false)
   }
 
-  const handleIterate = () => {
-    if (!selectedCharacter) return
-    setPrompt(selectedCharacter.tags)
-    handleGenerate()
+  const handleIterate = async () => {
+    if (!firstSelectedShape || isGenerating || !canGenerate) return
+
+    setIsGenerating(true)
+
+    const [error, result] = await handlePromise(
+      iterateImage({
+        prompt,
+        baseImageStorageId: firstSelectedShape.meta.storageId as Id<'_storage'>,
+        size: selectedSize,
+      })
+    )
+
+    if (error) {
+      toast.error(getErrorMessage({ error, fallbackText: 'Failed to iterate image' }))
+    } else if (result && addGeneratedImage) {
+      addGeneratedImage({
+        imageUrl: result.imageUrl ?? '',
+        storageId: result.storageId.toString(),
+        prompt: result.prompt,
+        position: {
+          x: firstSelectedShape.x + 50,
+          y: firstSelectedShape.y + 50,
+        },
+        dimensions: { w: result.dimensions.width, h: result.dimensions.height },
+        parentImageId: firstSelectedShape.meta.storageId.toString(),
+      })
+      toast.success('Image iteration created!')
+    }
+
+    setIsGenerating(false)
+  }
+
+  const handleGenerateOrIterate = async () => {
+    if (firstSelectedShape) {
+      await handleIterate()
+    } else {
+      await handleGenerate()
+    }
   }
 
   return (
     <div className="bg-sidebar-bg border-border flex w-[400px] flex-col border-r">
       {/* Selected Character */}
-      {selectedCharacter && (
+      {hasAnySelectedShapes && (
         <Card className="m-2 mb-0 rounded-md">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between text-sm">
@@ -69,7 +164,6 @@ export const Sidebar = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSelectedCharacter(null)}
                 className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
               >
                 ×
@@ -77,24 +171,24 @@ export const Sidebar = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <div className="bg-muted aspect-square size-10 overflow-hidden rounded-md">
-              <img
-                src={selectedCharacter.src}
-                alt={selectedCharacter.tags}
-                className="h-full w-full object-cover"
-              />
+            <div className="flex items-center gap-2">
+              {selectedShapes &&
+                selectedShapes.length > 0 &&
+                selectedShapes.map((shape) => (
+                  <div key={shape.id}>
+                    <div className="bg-muted aspect-square size-10 overflow-hidden rounded-md">
+                      <img
+                        src={shape.meta.imageUrl}
+                        alt={shape.meta.prompt}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="text-muted-foreground bg-muted rounded p-2 text-xs">
+                      {shape.meta.prompt}
+                    </div>
+                  </div>
+                ))}
             </div>
-            <div className="text-muted-foreground bg-muted rounded p-2 text-xs">
-              {selectedCharacter.tags}
-            </div>
-            <Button
-              onClick={handleIterate}
-              variant="outline"
-              size="sm"
-              className="border-anime-purple text-anime-purple hover:bg-anime-purple-light w-full"
-            >
-              Iterate Character
-            </Button>
           </CardContent>
         </Card>
       )}
@@ -134,7 +228,7 @@ export const Sidebar = () => {
 
           {/* Generate Button */}
           <Button
-            onClick={handleGenerate}
+            onClick={handleGenerateOrIterate}
             disabled={!prompt.trim() || isGenerating}
             className="from-anime-purple to-anime-pink w-full bg-gradient-to-r transition-opacity hover:opacity-90"
           >
@@ -146,7 +240,7 @@ export const Sidebar = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <img src={WandPng} alt="Wand" className="size-5" />
-                Generate Image
+                {firstSelectedShape ? 'Iterate Character' : 'Generate Character'}
               </div>
             )}
           </Button>
@@ -181,7 +275,7 @@ const ExamplesSection = ({ examples, onExampleClick }: ExamplesSectionProps) => 
 interface SizeOptionsSectionProps {
   sizeOptions: typeof sizeOptions
   selectedSize: string
-  onSizeSelect: (size: string) => void
+  onSizeSelect: (size: (typeof sizeOptions)[number]['value']) => void
 }
 
 const SizeOptionsSection = ({

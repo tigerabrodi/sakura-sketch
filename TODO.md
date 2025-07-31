@@ -1,0 +1,3 @@
+- Fix white flashing because store isn't being memoized properly.
+- Why selected shape isn't showing image url, for some reason we're not getting the url from the file storage.
+- See if you can drag and drop images from the file system into the canvas.

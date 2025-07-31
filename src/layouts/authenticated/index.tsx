@@ -6,7 +6,7 @@ import { generatePath, Outlet, useNavigate } from 'react-router'
 
 import { AppHeader } from './components/header/AppHeader'
 import { Sidebar } from './components/Sidebar'
-import { CanvasProvider } from './providers/CanvasProvider'
+import { EditorWrapperProvider } from './providers/EditorProvider'
 
 import { ROUTES } from '@/lib/constants'
 
@@ -31,7 +31,7 @@ export function AuthenticatedLayout() {
   }
 
   return (
-    <CanvasProvider>
+    <EditorWrapperProvider>
       <div className="flex flex-1 flex-col">
         <AppHeader />
         <div className="flex w-full flex-1">
@@ -39,6 +39,6 @@ export function AuthenticatedLayout() {
           <Outlet />
         </div>
       </div>
-    </CanvasProvider>
+    </EditorWrapperProvider>
   )
 }

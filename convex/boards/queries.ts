@@ -54,3 +54,27 @@ export const getBoardsByWorkspaceId = query({
     return boards
   },
 })
+
+export const getBoardByWorkspaceId = query({
+  args: {
+    workspaceId: v.union(v.id('workspaces'), v.null()),
+  },
+  handler: async (ctx, args) => {
+    if (!args.workspaceId) {
+      return null
+    }
+
+    const workspace = await ctx.db.get(args.workspaceId)
+    if (!workspace) {
+      return null
+    }
+
+    if (!workspace.selectedBoardId) {
+      return null
+    }
+
+    const board = await ctx.db.get(workspace.selectedBoardId)
+
+    return board
+  },
+})

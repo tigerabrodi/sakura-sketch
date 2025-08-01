@@ -20,14 +20,13 @@ import { ConvexAssetStore } from './ConvexAssetStore'
 const DEBOUNCE_TIME = 1000
 
 export function CanvasPage() {
-  const { setEditor, setAddGeneratedImage } = useEditorWrapperContext()
+  const { setEditor, setAddGeneratedImage, editor } = useEditorWrapperContext()
   const user = useQuery(api.users.queries.getCurrentUser)
   const selectedWorkspaceId = user?.selectedWorkspaceId
   const board = useQuery(api.boards.queries.getBoardByWorkspaceId, {
     workspaceId: selectedWorkspaceId ?? null,
   })
 
-  const editorRef = useRef<Editor | null>(null)
   const hasInitializedRef = useRef(false)
 
   const convex = useConvex()
@@ -77,9 +76,7 @@ export function CanvasPage() {
     }) => {
       const { imageUrl, storageId, prompt, position, dimensions, parentImageId } = params
 
-      if (!editorRef.current) return
-
-      const editor = editorRef.current
+      if (!editor) return
 
       // Create asset ID
       const assetId = AssetRecordType.createId()
@@ -126,13 +123,12 @@ export function CanvasPage() {
 
       return shapeId
     },
-    []
+    [editor]
   )
 
   // Handle editor mount
   const handleMount = useCallback(
     (editor: Editor) => {
-      editorRef.current = editor
       setEditor(editor)
 
       // Listen to store changes for auto-save

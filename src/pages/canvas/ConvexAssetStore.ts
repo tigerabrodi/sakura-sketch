@@ -10,7 +10,7 @@ export class ConvexAssetStore implements TLAssetStore {
     this.convex = convex
   }
 
-  upload = async (asset: TLAsset, file: File): Promise<{ src: string }> => {
+  upload = async (_asset: TLAsset, file: File): Promise<{ src: string }> => {
     try {
       // Generate upload URL
       const uploadUrl = await this.convex.mutation(api.images.mutations.generateUploadUrl)

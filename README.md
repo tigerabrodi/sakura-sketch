@@ -1,54 +1,36 @@
-# React Convex Template
+https://github.com/user-attachments/assets/e083cdad-4834-4dce-8edc-a9a49767008f
 
-I did this one for myself.
+<div align="center">
+<h1 align="center">
+  <a href="https://sakurasketch.com/">Sakura Sketch</a>
+</h1>
+  <p>
+    Generate and iterate on anime characters with AI on infinite canvas.
+  </p>
+</div>
 
-- React
-- Convex
-- Convex Auth
-- Vercel
-- Tailwind
-- Shadcn
+## Free and Open Source
 
-Has some nice prettier + eslint rules that I like. I just push to the main branch btw.
+Tanjaro is free (closed access) and open source.
 
-I also use the same Auth logic + UI as base for all my side projects hehe + just deploy to Vercel.
+## Tech stack 💻
 
-Generally, I like using most of what Vercel has to offer, it's usually enough for me, I sometimes reach for other tools if necessary but considering Convex as a whole backend platform, I usually need very little from external services lol
+- [React](https://react.dev/) for frontend.
+- [Convex](https://www.convex.dev/) for backend.
+- [Motion](https://motion.dev/) for spring animations.
+- [Tailwind](https://tailwindcss.com/) for styling.
+- [Shadcn](https://ui.shadcn.com/) for components.
+- [Vercel](https://vercel.com/) for hosting and web analytics.
+- [Replicate](https://replicate.com/) for AI image generation.
 
-# What can you build with this?
+## Cloning & running 🏄
 
-You can build anything almost, including multiplayer games.
+1. Clone the repo: `git clone https://github.com/tigerabrodi/sakura-sketch`
+2. Setup a Convex account and create a new project.
+3. Run `pnpm install`
+4. Run `npx convex dev` (this will setup your `.env.local` file)
+5. Run `pnpm dev`
 
-# How to get started + deploy
+## License
 
-How I do it after fork/clone + `pnpm install`:
-
-1. `npx convex dev` (you need to be logged into convex in your browser)
-2. Push to a repo
-3. Deploy to Vercel + read [deploy to vercel](https://docs.convex.dev/production/hosting/vercel#deploying-to-vercel)
-4. `npx @convex-dev/auth`
-5. Run locally and make sure auth works for dev.
-6. `npx @convex-dev/auth --prod`
-
-# Convetions I enjoy
-
-`handlePromise` for dealing with promises over try/catch.
-
----
-
-I import convex stuff from `@/convex/...`
-
----
-
-You can see my lint config + prettier of what I prefer I guess, generally a fan of clean and simple code.
-
----
-
-`InputWithFeedback` component for inputs with error + helper text.
-
-# Tailor to your product
-
-- index.css file for the theme -> just ask ai to do it for you i guess
-- index.html file for all meta tags
-- package.json name license, etc.
-- See login form `src/pages/login/index.tsx` + add your name.
+This project is licensed under the MIT License ❤️

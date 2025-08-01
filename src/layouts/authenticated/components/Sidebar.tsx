@@ -69,6 +69,9 @@ export const Sidebar = () => {
     selectedShapes?.length === 1 && selectedShapes[0]?.type === 'image' ? selectedShapes[0] : null
 
   const canGenerate = prompt.trim().length > 0 && !isGenerating
+  const canIterateOnSelectedShapes = hasAnySelectedShapes
+    ? Boolean(selectedShapes?.length === 1 && !isGenerating && firstSelectedShape)
+    : true
 
   const generateNewImage = useAction(api.images.actions.generateAnimeImage)
   const iterateImage = useAction(api.images.actions.iterateAnimeImage)
@@ -154,7 +157,7 @@ export const Sidebar = () => {
     <div className="bg-sidebar-bg border-border flex w-[400px] flex-col border-r">
       {/* Selected Character */}
       {hasAnySelectedShapes && (
-        <Card className="m-2 mb-0 rounded-md">
+        <Card className="m-2 mb-0 gap-0 rounded-md">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
@@ -165,17 +168,20 @@ export const Sidebar = () => {
                 variant="ghost"
                 size="sm"
                 className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                onClick={() => {
+                  editor?.setSelectedShapes([])
+                }}
               >
                 ×
               </Button>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               {selectedShapes &&
                 selectedShapes.length > 0 &&
                 selectedShapes.map((shape) => (
-                  <div key={shape.id}>
+                  <div key={shape.id} className="flex flex-col gap-2">
                     <div className="bg-muted aspect-square size-10 overflow-hidden rounded-md">
                       <img
                         src={shape.meta.imageUrl}
@@ -229,7 +235,7 @@ export const Sidebar = () => {
           {/* Generate Button */}
           <Button
             onClick={handleGenerateOrIterate}
-            disabled={!prompt.trim() || isGenerating}
+            disabled={!prompt.trim() || isGenerating || !canIterateOnSelectedShapes}
             className="from-anime-purple to-anime-pink w-full bg-gradient-to-r transition-opacity hover:opacity-90"
           >
             {isGenerating ? (
@@ -240,7 +246,7 @@ export const Sidebar = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <img src={WandPng} alt="Wand" className="size-5" />
-                {firstSelectedShape ? 'Iterate Character' : 'Generate Character'}
+                {hasAnySelectedShapes ? 'Iterate Character' : 'Generate Character'}
               </div>
             )}
           </Button>

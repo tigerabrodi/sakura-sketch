@@ -96,7 +96,9 @@ export const useAppHeaderMutations = ({
       }
 
       const newAllBoards = boards?.map((board) =>
-        board._id === args.boardId ? { ...currentBoard, name: args.name } : board
+        board._id === args.boardId
+          ? { ...currentBoard, name: args.data.name ?? currentBoard.name }
+          : board
       )
 
       localStore.setQuery(

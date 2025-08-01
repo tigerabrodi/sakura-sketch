@@ -77,9 +77,10 @@ export const generateAnimeImage = action({
       const blob = new Blob(chunks, { type: 'image/png' })
 
       const storageId = await ctx.storage.store(blob)
+      const url = await ctx.storage.getUrl(storageId)
 
       return {
-        imageUrl: await ctx.storage.getUrl(storageId),
+        imageUrl: url,
         storageId,
         prompt: enhancedPrompt,
         originalPrompt: args.prompt,
@@ -133,20 +134,38 @@ export const iterateAnimeImage = action({
       throw new Error(`Image iteration failed: ${error}`)
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const imageUrl = typeof output === 'string' ? output : (output as any).url()
-    const imgRes = await fetch(imageUrl as string)
-    const blob = await imgRes.blob()
-    const storageId = await ctx.storage.store(blob)
-    return {
-      imageUrl: await ctx.storage.getUrl(storageId),
-      storageId,
-      prompt: enhancedPrompt,
-      originalPrompt: args.prompt,
-      baseImageStorageId: args.baseImageStorageId,
-      dimensions: { width: dimensions.width, height: dimensions.height },
-      seed: args.seed,
-      strength: args.strength ?? 0.5,
+    // For Mistoon model, output is an array of ReadableStreams
+    if (Array.isArray(output) && output.length > 0) {
+      // Get the first image from the array
+      const imageStream = output[0]
+
+      // Convert ReadableStream to ArrayBuffer, then to Blob
+      const reader = imageStream.getReader()
+      const chunks = []
+
+      while (true) {
+        // eslint-disable-next-line no-await-in-loop
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+      }
+
+      // Create blob with explicit MIME type
+      const blob = new Blob(chunks, { type: 'image/png' })
+
+      const storageId = await ctx.storage.store(blob)
+      const url = await ctx.storage.getUrl(storageId)
+
+      return {
+        imageUrl: url,
+        storageId,
+        prompt: enhancedPrompt,
+        originalPrompt: args.prompt,
+        baseImageStorageId: args.baseImageStorageId,
+        dimensions: { width: dimensions.width, height: dimensions.height },
+        seed: args.seed,
+        strength: args.strength ?? 0.5,
+      }
     }
   },
 })

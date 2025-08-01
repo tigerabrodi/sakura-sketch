@@ -193,7 +193,7 @@ export const AppHeader = () => {
                 <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64" align="center">
+            <DropdownMenuContent className="z-[1000] w-64" align="center">
               {workspaces?.map((workspace) => (
                 <DropdownMenuItem
                   key={workspace._id}
@@ -233,7 +233,7 @@ export const AppHeader = () => {
                 <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="center">
+            <DropdownMenuContent className="z-[1000] w-56" align="center">
               {boards?.map((board) => (
                 <DropdownMenuItem
                   key={board._id}

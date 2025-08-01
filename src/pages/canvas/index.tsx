@@ -116,6 +116,7 @@ export function CanvasPage() {
           prompt,
           storageId,
           generatedAt: Date.now(),
+          imageUrl,
           ...(parentImageId && { parentImageId }), // Only include if defined
         },
       })

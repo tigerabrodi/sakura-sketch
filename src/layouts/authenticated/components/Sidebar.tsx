@@ -57,10 +57,9 @@ export const Sidebar = () => {
 
   const { editor, addGeneratedImage } = useEditorWrapperContext()
 
-  const selectedShapeIds = useValue('selectedShapeIds', () => editor?.getSelectedShapeIds(), [
+  const selectedShapes = useValue('selectedShapes', () => editor?.getSelectedShapes(), [
     editor,
-  ])
-  const selectedShapes = selectedShapeIds?.map((id) => editor?.getShape(id) as AnimeImageShape)
+  ]) as Array<AnimeImageShape>
 
   const hasAnySelectedShapes = Boolean(selectedShapes?.length && selectedShapes.length > 0)
 

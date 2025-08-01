@@ -17,6 +17,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         email: args.profile.email!,
         updatedAt: Date.now(),
         selectedWorkspaceId: null,
+        hasAccess: false,
       })
 
       const workspaceId = await ctx.db.insert('workspaces', {

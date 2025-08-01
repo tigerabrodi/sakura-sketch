@@ -11,6 +11,7 @@ export default defineSchema({
   users: defineTable({
     email: v.string(),
     updatedAt: v.number(),
+    hasAccess: v.boolean(),
     selectedWorkspaceId: v.union(v.id('workspaces'), v.null()),
     apiKey: v.optional(
       v.object({

@@ -1,13 +1,17 @@
-import { getAuthUserId } from '@convex-dev/auth/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 
+import { api } from '../_generated/api'
 import { mutation } from '../_generated/server'
 
 export const generateUploadUrl = mutation(async (ctx) => {
-  const userId = await getAuthUserId(ctx)
+  const user = await ctx.runQuery(api.users.queries.getCurrentUser)
 
-  if (!userId) {
+  if (!user) {
     throw new Error('User not authenticated')
+  }
+
+  if (!user.hasAccess) {
+    throw new ConvexError('User does not have access to generate an upload URL')
   }
 
   return await ctx.storage.generateUploadUrl()
@@ -21,6 +25,16 @@ export const saveImageMeta = mutation({
     mimeType: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.runQuery(api.users.queries.getCurrentUser)
+
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+
+    if (!user.hasAccess) {
+      throw new ConvexError('User does not have access to save image metadata')
+    }
+
     await ctx.db.insert('images', {
       storageId: args.storageId,
       name: args.name,

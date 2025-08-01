@@ -1,6 +1,6 @@
-import { getAuthUserId } from '@convex-dev/auth/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 
+import { api } from '../_generated/api'
 import { mutation } from '../_generated/server'
 
 export const createNewBoard = mutation({
@@ -9,10 +9,14 @@ export const createNewBoard = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const user = await ctx.runQuery(api.users.queries.getCurrentUser)
 
-    if (!userId) {
+    if (!user) {
       throw new Error('User not authenticated')
+    }
+
+    if (!user.hasAccess) {
+      throw new ConvexError('User does not have access to create a board')
     }
 
     const workspace = await ctx.db.get(args.workspaceId)
@@ -21,14 +25,14 @@ export const createNewBoard = mutation({
       throw new Error('Workspace not found')
     }
 
-    if (workspace.userId !== userId) {
+    if (workspace.userId !== user._id) {
       throw new Error('User does not have permission to create a board in this workspace')
     }
 
     const boardId = await ctx.db.insert('boards', {
       name: args.name,
       workspaceId: args.workspaceId,
-      userId,
+      userId: user._id,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       tldrawSnapshot: null,
@@ -49,10 +53,14 @@ export const updateBoard = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const user = await ctx.runQuery(api.users.queries.getCurrentUser)
 
-    if (!userId) {
+    if (!user) {
       throw new Error('User not authenticated')
+    }
+
+    if (!user.hasAccess) {
+      throw new ConvexError('User does not have access to update a board')
     }
 
     const board = await ctx.db.get(args.boardId)
@@ -61,7 +69,7 @@ export const updateBoard = mutation({
       throw new Error('Board not found')
     }
 
-    if (board.userId !== userId) {
+    if (board.userId !== user._id) {
       throw new Error('User does not have permission to update this board')
     }
 
@@ -81,6 +89,16 @@ export const saveImageMeta = mutation({
     mimeType: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.runQuery(api.users.queries.getCurrentUser)
+
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+
+    if (!user.hasAccess) {
+      throw new ConvexError('User does not have access to save image metadata')
+    }
+
     await ctx.db.insert('images', {
       storageId: args.storageId,
       name: args.name,

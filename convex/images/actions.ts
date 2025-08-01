@@ -1,7 +1,8 @@
 'use node'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import Replicate from 'replicate'
 
+import { api } from '../_generated/api'
 import { action } from '../_generated/server'
 import { ANIME_MODEL_VERSION } from '../constants'
 import { handlePromise } from '../utils'
@@ -20,6 +21,16 @@ export const generateAnimeImage = action({
     seed: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.runQuery(api.users.queries.getCurrentUser)
+
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+
+    if (!user.hasAccess) {
+      throw new ConvexError('User does not have access to generate an image')
+    }
+
     const sizeMap = {
       portrait: { width: 896, height: 1152 },
       square: { width: 1024, height: 1024 },
@@ -100,6 +111,16 @@ export const iterateAnimeImage = action({
     seed: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.runQuery(api.users.queries.getCurrentUser)
+
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+
+    if (!user.hasAccess) {
+      throw new ConvexError('User does not have access to iterate an image')
+    }
+
     // Get base image as a URL
     const baseImageUrl = await ctx.storage.getUrl(args.baseImageStorageId)
 

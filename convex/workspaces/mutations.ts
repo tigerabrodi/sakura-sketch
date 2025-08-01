@@ -1,6 +1,7 @@
 import { getAuthUserId } from '@convex-dev/auth/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 
+import { api } from '../_generated/api'
 import { mutation } from '../_generated/server'
 
 export const switchWorkspace = mutation({
@@ -44,10 +45,14 @@ export const updateWorkspace = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const user = await ctx.runQuery(api.users.queries.getCurrentUser)
 
-    if (!userId) {
+    if (!user) {
       throw new Error('User not authenticated')
+    }
+
+    if (!user.hasAccess) {
+      throw new ConvexError('User does not have access to update a workspace')
     }
 
     const workspace = await ctx.db.get(args.workspaceId)
@@ -56,7 +61,7 @@ export const updateWorkspace = mutation({
       throw new Error('Workspace not found')
     }
 
-    if (workspace.userId !== userId) {
+    if (workspace.userId !== user._id) {
       throw new Error('User does not have permission to update this workspace')
     }
 
@@ -71,21 +76,25 @@ export const createWorkspace = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const user = await ctx.runQuery(api.users.queries.getCurrentUser)
 
-    if (!userId) {
+    if (!user) {
       throw new Error('User not authenticated')
+    }
+
+    if (!user.hasAccess) {
+      throw new ConvexError('User does not have access to create a workspace')
     }
 
     const workspaceId = await ctx.db.insert('workspaces', {
       name: args.name,
-      userId,
+      userId: user._id,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       selectedBoardId: null,
     })
 
-    await ctx.db.patch(userId, {
+    await ctx.db.patch(user._id, {
       selectedWorkspaceId: workspaceId,
     })
 
@@ -94,7 +103,7 @@ export const createWorkspace = mutation({
       tldrawSnapshot: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      userId,
+      userId: user._id,
       workspaceId,
     })
 
